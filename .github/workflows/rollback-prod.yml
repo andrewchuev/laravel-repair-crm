@@ -29,11 +29,9 @@ jobs:
         run: |
           set -eu
           install -m 700 -d ~/.ssh
-          printf '%s
-' "$PROD_SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$PROD_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          printf '%s
-' "$PROD_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '%s\n' "$PROD_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
       - name: Run remote rollback
@@ -44,4 +42,7 @@ jobs:
           TARGET_SHA: ${{ inputs.target_sha }}
         run: |
           set -eu
-          ssh -i ~/.ssh/id_ed25519             -p "${PROD_PORT}"             "${PROD_USER}@${PROD_HOST}"             "TARGET_SHA='${TARGET_SHA}' REPO_DIR='/opt/sites/crm.reslab.pro' bash /opt/sites/crm.reslab.pro/deploy/rollback-prod.sh"
+          ssh -i ~/.ssh/id_ed25519 \
+            -p "${PROD_PORT}" \
+            "${PROD_USER}@${PROD_HOST}" \
+            "TARGET_SHA='${TARGET_SHA}' REPO_DIR='/opt/sites/crm.reslab.pro' bash /opt/sites/crm.reslab.pro/deploy/rollback-prod.sh"
