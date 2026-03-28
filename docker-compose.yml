@@ -1,0 +1,118 @@
+services:
+  app:
+    image: ${CRM_APP_IMAGE}
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - crm_storage:/var/www/html/storage
+    healthcheck:
+      test: ["CMD-SHELL", "php -v >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  web:
+    image: ${CRM_WEB_IMAGE}
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_started
+    ports:
+      - "127.0.0.1:${DOCKER_APP_HTTP_PORT}:80"
+    volumes:
+      - crm_storage:/var/www/html/storage
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/up || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  queue:
+    image: ${CRM_APP_IMAGE}
+    pull_policy: never
+    env_file:
+      - .env
+    environment:
+      APP_RUN_MIGRATIONS: "false"
+      APP_RUN_OPTIMIZE: "false"
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      app:
+        condition: service_started
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600", "--verbose"]
+    volumes:
+      - crm_storage:/var/www/html/storage
+
+  scheduler:
+    image: ${CRM_APP_IMAGE}
+    pull_policy: never
+    env_file:
+      - .env
+    environment:
+      APP_RUN_MIGRATIONS: "false"
+      APP_RUN_OPTIMIZE: "false"
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      app:
+        condition: service_started
+    command: ["php", "artisan", "schedule:work"]
+    volumes:
+      - crm_storage:/var/www/html/storage
+
+  db:
+    image: ${CRM_DB_IMAGE}
+    env_file:
+      - .env
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - crm_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  redis:
+    image: ${CRM_REDIS_IMAGE}
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - crm_redis_data:/data
+
+volumes:
+  crm_storage:
+  crm_db_data:
+  crm_redis_data:
