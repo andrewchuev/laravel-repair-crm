@@ -7,19 +7,6 @@ server {
 
     client_max_body_size ${NGINX_CLIENT_MAX_BODY_SIZE};
 
-    access_log /var/log/nginx/access.log;
-    error_log /var/log/nginx/error.log warn;
-
-    location = /favicon.ico {
-        log_not_found off;
-        access_log off;
-    }
-
-    location = /robots.txt {
-        log_not_found off;
-        access_log off;
-    }
-
     location / {
         try_files $uri $uri/ /index.php?$query_string;
     }
@@ -31,6 +18,12 @@ server {
         fastcgi_param SCRIPT_NAME /index.php;
         fastcgi_param REQUEST_URI /up;
         fastcgi_param PATH_INFO "";
+
+        fastcgi_param HTTP_X_FORWARDED_PROTO $http_x_forwarded_proto;
+        fastcgi_param HTTP_X_FORWARDED_HOST $http_x_forwarded_host;
+        fastcgi_param HTTP_X_FORWARDED_PORT $http_x_forwarded_port;
+        fastcgi_param HTTP_X_FORWARDED_FOR $http_x_forwarded_for;
+
         fastcgi_pass app:9000;
         fastcgi_read_timeout 60s;
     }
@@ -40,6 +33,12 @@ server {
         fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
         fastcgi_param DOCUMENT_ROOT $realpath_root;
         fastcgi_param SCRIPT_NAME $fastcgi_script_name;
+
+        fastcgi_param HTTP_X_FORWARDED_PROTO $http_x_forwarded_proto;
+        fastcgi_param HTTP_X_FORWARDED_HOST $http_x_forwarded_host;
+        fastcgi_param HTTP_X_FORWARDED_PORT $http_x_forwarded_port;
+        fastcgi_param HTTP_X_FORWARDED_FOR $http_x_forwarded_for;
+
         fastcgi_pass app:9000;
         fastcgi_read_timeout 300s;
     }
