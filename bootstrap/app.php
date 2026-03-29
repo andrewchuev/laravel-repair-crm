@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'set-locale' => SetLocale::class,
             'active-user' => EnsureUserIsActive::class,
         ]);
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
